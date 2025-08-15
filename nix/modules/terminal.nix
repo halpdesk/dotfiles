@@ -40,6 +40,7 @@ in {
     kdePackages.konsole
     kdePackages.yakuake
     zsh
+    grc
   ];
 
   # Konsole
@@ -119,8 +120,13 @@ in {
       omfg = "git push --force origin";
       ga = "git add";
       fu = "git commit --amend --no-edit";
+      gpo = "git pull origin";
       out = "git checkout";
+      greb2 = "git rebase -i HEAD~2";
       gitauthors = "git log --format='%C(Magenta)%aN' | sort -u";
+
+      # build
+      make = "grc make";
     };
 
     oh-my-zsh = {
@@ -131,9 +137,6 @@ in {
     };
 
     initContent = ''
-      # forces zsh to rescan the PATH for new executables.
-      rehash
-
       # enables completion system including command name completion
       autoload -Uz compinit
       compinit
@@ -149,6 +152,17 @@ in {
   #
   home.file.".zprofile".text = ''
     # Custom made zprofile - loads on login shells
+
+    file="$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
+    if [ -f "$file" ]; then
+      export __HM_SESS_VARS_SOURCED=
+      source "$file"
+      hash -r
+    fi
+
+    # forces zsh to rescan the PATH for new executables.
+    rehash
+
     echo "# Logged in"
   '';
 

@@ -2,6 +2,8 @@
 
 let
   username = "halpdesk";
+  name = "Daniel Wiltshire Leppänen";
+  companyEmail = "daniel@juni.co";
   email = "daniel.leppanen@gmail.com";
   home = "/home/${username}";
   timezone = "Europe/Stockholm";
@@ -18,7 +20,7 @@ in {
     (import ./modules/observability.nix { inherit config pkgs username; })
     (import ./modules/tools.nix { inherit config pkgs username; })
     (import ./modules/devtools.nix {
-      inherit config pkgs lib appsDir username email;
+      inherit config pkgs lib appsDir name companyEmail;
     })
   ];
 
@@ -29,10 +31,13 @@ in {
   home.sessionVariables = {
     EDITOR = defaultEditor;
     TZ = timezone;
-    PATH = "$HOME/.nix-profile/bin:$HOME/.local/bin:$PATH";
+    PATH = "$HOME/.nix-profile/bin:$HOME/.local/bin:$HOME/go/bin:$PATH";
     ZSH_THEME = "dracula";
     LC_ALL = "en_US.UTF-8";
     LANG = "en_US.UTF-8";
+    GOPATH = "$HOME/go";
+    GOPRIVATE = "gitlab.com/junitechnology/*";
+    GO111MODULE = "on";
   };
 
   # home.packages = with pkgs; [ kdeFrameworks.kservice ];
@@ -42,6 +47,8 @@ in {
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
+      "x-scheme-handler/magnet" = "userapp-transmission-gtk-B138A3.desktop";
+      "x-scheme-handler/slack" = "slack.desktop";
       "x-scheme-handler/http" = "google-chrome.desktop";
       "x-scheme-handler/https" = "google-chrome.desktop";
       "application/pdf" = "google-chrome.desktop";
@@ -166,7 +173,7 @@ in {
       mkdir -p "$HOME/.local/share/applications"
 
       # Define desktop entries you want to symlink
-      for app in brave-browser.desktop google-chrome.desktop slack.desktop gimp.desktop code.desktop code-url-handler.desktop org.flameshot.Flameshot.desktop org.kde.konsole.desktop org.kde.yakuake.desktop vlc.desktop yazi.desktop org.nomacs.ImageLounge.desktop; do
+      for app in 1password.desktop brave-browser.desktop google-chrome.desktop slack.desktop gimp.desktop code.desktop code-url-handler.desktop org.flameshot.Flameshot.desktop org.kde.konsole.desktop org.kde.yakuake.desktop vlc.desktop yazi.desktop org.nomacs.ImageLounge.desktop transmission-gtk.desktop; do
         src="$HOME/.nix-profile/share/applications/$app"
         dest="$HOME/.local/share/applications/$app"
 

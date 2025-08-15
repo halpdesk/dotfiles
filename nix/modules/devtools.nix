@@ -1,9 +1,79 @@
-{ config, pkgs, lib, appsDir, username, email, ... }:
+{ config, pkgs, lib, appsDir, name, companyEmail, ... }:
 
+# let
+# cursor = pkgs.stdenv.mkDerivation {
+#   pname = "cursor";
+#   version = "1.4.2";
+
+#   src = pkgs.fetchurl {
+#     url =
+#       "https://downloads.cursor.com/production/d01860bc5f5a36b62f8a77cd42578126270db343/linux/x64/Cursor-1.4.2-x86_64.AppImage";
+#     sha256 =
+#       "sha256-WMZA0CjApcSTup4FLIxxaO7hMMZrJPawYsfCXnFK4EE="; # replace with real hash
+#   };
+
+#   nativeBuildInputs = [ pkgs.makeWrapper ];
+#   dontUnpack = true;
+
+#   installPhase = ''
+#     mkdir -p $out/bin
+#     cp $src $out/bin/cursor
+#     chmod +x $out/bin/cursor
+#   '';
+
+#   # Make sure Electron has all needed runtime libs
+#   buildInputs = [
+#     pkgs.alsa-lib
+#     pkgs.nss
+#     pkgs.xorg.libX11
+#     pkgs.xorg.libXcursor
+#     pkgs.xorg.libXdamage
+#     pkgs.xorg.libXrandr
+#     pkgs.xorg.libXScrnSaver
+#     pkgs.xorg.libXcomposite
+#     pkgs.xorg.libXi
+#     pkgs.xorg.libXtst
+#     pkgs.xorg.libXfixes
+#     pkgs.xorg.libxshmfence
+#     pkgs.glib
+#     pkgs.gtk3
+#     pkgs.zlib
+#     pkgs.pango
+#     pkgs.cups
+#     pkgs.dbus
+#     pkgs.libsecret
+#     pkgs.xorg.libXext
+#     pkgs.xorg.libxcb
+#     pkgs.libxkbcommon
+#     pkgs.freetype
+#     pkgs.xorg.libXrender
+#     pkgs.xorg.libXinerama
+#   ];
+
+#   runScript = ''
+#     ${pkgs.bash}/bin/bash -c '
+#       mkdir -p "$HOME/.cursor-app"
+#       cp $src "$HOME/.cursor-app/cursor.AppImage"
+#       chmod +x "$HOME/.cursor-app/cursor.AppImage"
+#       exec "$HOME/.cursor-app/cursor.AppImage" --no-sandbox "$@"
+#     '
+#   '';
+
+#   meta = with lib; {
+#     description = "Cursor - the AI code editor (AppImage build)";
+#     homepage = "https://cursor.com";
+#     license = licenses.unfree;
+#     platforms = [ "x86_64-linux" ];
+#   };
+# };
+# in
 {
+  nixpkgs.config.allowUnfree = true;
+
   home.packages = with pkgs; [
     # IDEs
     vscode
+    (import ../packages/cursor.nix { inherit config pkgs lib; })
 
     # cli tools
     gitui # TUI for git workflows
@@ -48,10 +118,14 @@
     python3Packages.pylint # Linter
 
     # haskell
-    haskell.compiler.ghc96 # or ghc98 for the latest stable
-    haskellPackages.cabal-install # cabal
-    haskellPackages.stack # stack (optional)
-    haskell-language-server # optional, for editor support
+    # Haskell
+    (haskell.packages.ghc96.ghc) # GHC compiler
+    haskell.packages.ghc96.cabal-install # Cabal
+    haskell.packages.ghc96.haskell-language-server
+    stack # Use pkgs.stack, not from haskellPackages
+    direnv
+    nix-direnv
+    gmp
 
     # Cloud and container tools
     awscli2
@@ -66,17 +140,20 @@
   programs.git = {
     enable = true;
 
-    userName = username;
-    userEmail = email;
+    userName = name;
+    userEmail = companyEmail;
 
     extraConfig = {
       init.defaultBranch = "main";
       i18n.commitEncoding = "utf-8";
       i18n.logOutputEncoding = "utf-8";
       core.quotepath = false;
+      push.autoSetupRemote = true;
 
       alias.lg =
         "log --graph --pretty=format:'%C(yellow)%h%Creset - %C(cyan)%an%Creset - %s %Cgreen(%cr)%Creset' --abbrev-commit --all";
+      alias.count-lines = ''
+        ! git log --author="$2" --until="$3" --pretty=tformat: --numstat $1 | awk '{ add += $1; subs += $2; loc += $1 - $2 } END { printf "added lines: %s, removed lines: %s, total lines: %s\n", add, subs, loc }' #'';
     };
   };
 
@@ -490,18 +567,19 @@
   programs.zsh.initContent = ''
     if [ -d "${appsDir}/exercism/shell" ]; then
       fpath=("${appsDir}/exercism/shell" $fpath)
+      autoload -Uz compinit && compinit
     fi
   '';
 
   # haskell stack
   home.activation.stackConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    export PATH=${lib.makeBinPath [ pkgs.haskellPackages.stack ]}:$PATH
-    # Ensure Stack is installed and config directory exists
     mkdir -p ~/.stack
 
     # Configure Stack to ignore Nix and use its own GHC
-    stack config set system-ghc --global true
-    stack config set install-ghc --global true
+    ${pkgs.stack}/bin/stack config set system-ghc --global true
+    ${pkgs.stack}/bin/stack config set install-ghc --global true
+
+    # Disable annoying warning
     if ! grep -q '^notify-if-nix-on-path:' ~/.stack/config.yaml; then
       echo 'notify-if-nix-on-path: false' >> ~/.stack/config.yaml
     fi
