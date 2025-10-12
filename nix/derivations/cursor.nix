@@ -1,17 +1,14 @@
 { config, pkgs, lib, ... }:
 
-let
-  cursorVersion = "1.4.2";
-  cursorAppImage = pkgs.fetchurl {
+pkgs.stdenv.mkDerivation {
+  pname = "cursor";
+  version = "latest";
+
+  src = pkgs.fetchurl {
     url =
-      "https://downloads.cursor.com/production/d01860bc5f5a36b62f8a77cd42578126270db343/linux/x64/Cursor-${cursorVersion}-x86_64.AppImage";
+      "https://downloads.cursor.com/production/d01860bc5f5a36b62f8a77cd42578126270db343/linux/x64/Cursor-1.4.2-x86_64.AppImage";
     sha256 = "sha256-WMZA0CjApcSTup4FLIxxaO7hMMZrJPawYsfCXnFK4EE=";
   };
-in pkgs.stdenv.mkDerivation {
-  pname = "cursor";
-  version = cursorVersion;
-
-  src = cursorAppImage;
 
   nativeBuildInputs = [ pkgs.makeWrapper ];
 
@@ -52,7 +49,7 @@ in pkgs.stdenv.mkDerivation {
 
   meta = with lib; {
     description = "Cursor - AI code editor";
-    homepage = "https://cursor.com";
+    homepage = "https://cursor.com/cli";
     license = licenses.unfree;
     platforms = [ "x86_64-linux" ];
   };

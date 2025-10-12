@@ -103,6 +103,8 @@ in {
 
     shellAliases = {
       update = "home-manager switch";
+      update-session =
+        "unset __HM_SESS_VARS_SOURCED && source ~/.nix-profile/etc/profile.d/hm-session-vars.sh";
 
       # terminal
       ll = "eza -lah --color=auto";

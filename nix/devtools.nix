@@ -1,141 +1,107 @@
 { config, pkgs, lib, appsDir, name, companyEmail, ... }:
 
-# let
-# cursor = pkgs.stdenv.mkDerivation {
-#   pname = "cursor";
-#   version = "1.4.2";
-
-#   src = pkgs.fetchurl {
-#     url =
-#       "https://downloads.cursor.com/production/d01860bc5f5a36b62f8a77cd42578126270db343/linux/x64/Cursor-1.4.2-x86_64.AppImage";
-#     sha256 =
-#       "sha256-WMZA0CjApcSTup4FLIxxaO7hMMZrJPawYsfCXnFK4EE="; # replace with real hash
-#   };
-
-#   nativeBuildInputs = [ pkgs.makeWrapper ];
-#   dontUnpack = true;
-
-#   installPhase = ''
-#     mkdir -p $out/bin
-#     cp $src $out/bin/cursor
-#     chmod +x $out/bin/cursor
-#   '';
-
-#   # Make sure Electron has all needed runtime libs
-#   buildInputs = [
-#     pkgs.alsa-lib
-#     pkgs.nss
-#     pkgs.xorg.libX11
-#     pkgs.xorg.libXcursor
-#     pkgs.xorg.libXdamage
-#     pkgs.xorg.libXrandr
-#     pkgs.xorg.libXScrnSaver
-#     pkgs.xorg.libXcomposite
-#     pkgs.xorg.libXi
-#     pkgs.xorg.libXtst
-#     pkgs.xorg.libXfixes
-#     pkgs.xorg.libxshmfence
-#     pkgs.glib
-#     pkgs.gtk3
-#     pkgs.zlib
-#     pkgs.pango
-#     pkgs.cups
-#     pkgs.dbus
-#     pkgs.libsecret
-#     pkgs.xorg.libXext
-#     pkgs.xorg.libxcb
-#     pkgs.libxkbcommon
-#     pkgs.freetype
-#     pkgs.xorg.libXrender
-#     pkgs.xorg.libXinerama
-#   ];
-
-#   runScript = ''
-#     ${pkgs.bash}/bin/bash -c '
-#       mkdir -p "$HOME/.cursor-app"
-#       cp $src "$HOME/.cursor-app/cursor.AppImage"
-#       chmod +x "$HOME/.cursor-app/cursor.AppImage"
-#       exec "$HOME/.cursor-app/cursor.AppImage" --no-sandbox "$@"
-#     '
-#   '';
-
-#   meta = with lib; {
-#     description = "Cursor - the AI code editor (AppImage build)";
-#     homepage = "https://cursor.com";
-#     license = licenses.unfree;
-#     platforms = [ "x86_64-linux" ];
-#   };
-# };
-# in
-{
+let unstable = import <nixpkgs-unstable> { };
+in {
   nixpkgs.config.allowUnfree = true;
 
-  home.packages = with pkgs; [
-    # IDEs
-    vscode
-    (import ../packages/cursor.nix { inherit config pkgs lib; })
+  home.packages = with pkgs;
+    [
+      # IDEs
+      vscode
+      (import derivations/cursor.nix { inherit config pkgs lib; })
+      (import derivations/cursor-cli.nix { inherit config pkgs lib; })
 
-    # cli tools
-    gitui # TUI for git workflows
-    git # code revision
-    jq # JSON CLI processor
-    #yq # YAML CLI processor
-    yq-go # version 4?
-    fx # JSON visualizer
-    miller # Like awk/sed/cut/jq for CSV and TSV files
-    hexyl # Beautiful hex viewer
-    choose # Cut/awk alternative
-    hyperfine # Benchmarking CLI commands
+      # cli tools
+      gitui # TUI for git workflows
+      git # code revision
+      jq # JSON CLI processor
+      #yq # YAML CLI processor
+      yq-go # version 4?
+      fx # JSON visualizer
+      miller # Like awk/sed/cut/jq for CSV and TSV files
+      hexyl # Beautiful hex viewer
+      choose # Cut/awk alternative
+      hyperfine # Benchmarking CLI commands
 
-    # nix
-    nil # nix language server
-    nixfmt-classic # nix formatter
+      # nix
+      nil # nix language server
+      nixfmt-classic # nix formatter
 
-    # Build tools
-    gnumake
-    gcc
-    binutils
-    zlib
+      # Build tools
+      gnumake
+      gcc
+      binutils
+      zlib
+      glib # glib-2.0
+      glib.dev # glib headers
 
-    # golang
-    go
-    gopls # Go language server
-    gofumpt # Better gofmt
-    golangci-lint # Linter
-    protobuf # protoc compiler
-    buf # popular linter and formatter
-    go-protobuf # protoc-gen-go
+      # golang
+      # go
+      # gopls
+      # go-tools
+      # gofumpt # Better gofmt
+      # golangci-lint # Linter
+      # protobuf # protoc compiler
+      # buf # popular linter and formatter
+      # go-protobuf # protoc-gen-go
 
-    # node and js
-    nodejs
-    nodePackages.typescript
-    nodePackages.ts-node
+      # node and js
+      nodejs
+      nodePackages.typescript
+      nodePackages.ts-node
 
-    # python
-    python3
-    python3Packages.python-lsp-server # pyls form (popular)
-    python3Packages.black # Formatter
-    python3Packages.pylint # Linter
+      # python
+      (python3.withPackages (ps:
+        with ps; [
+          pip
+          python-lsp-server # LSP server (pyls)
+          black # Formatter
+          pylint # Linter
+        ]))
+      (import derivations/weasyprint.nix { inherit config pkgs lib; })
+      # # Native libraries WeasyPrint needs
+      # cairo
+      # pango
+      # gdk-pixbuf
+      # glib
 
-    # haskell
-    # Haskell
-    (haskell.packages.ghc96.ghc) # GHC compiler
-    haskell.packages.ghc96.cabal-install # Cabal
-    haskell.packages.ghc96.haskell-language-server
-    stack # Use pkgs.stack, not from haskellPackages
-    direnv
-    nix-direnv
-    gmp
+      # Haskell
+      (haskell.packages.ghc96.ghc) # GHC compiler
+      haskell.packages.ghc96.cabal-install # Cabal
+      haskell.packages.ghc96.haskell-language-server
+      stack # Use pkgs.stack, not from haskellPackages
+      direnv
+      nix-direnv
+      gmp
 
-    # Cloud and container tools
-    awscli2
-    google-cloud-sdk
-    kubectl
-    k9s
-    helm
-    docker
-    docker-compose
-  ];
+      # Cloud and container tools
+      awscli2
+      google-cloud-sdk
+      kubectl
+      k9s
+      helm
+      docker
+      docker-compose
+
+      # terraform
+      terraform
+      terraform-ls
+      tflint
+
+      # other
+      vips.dev # high performance image processing library
+      pkg-config
+    ] ++ [
+      # golang
+      unstable.go
+      # unstable.gopls
+      unstable.go-tools
+      unstable.gofumpt # Better gofmt
+      unstable.golangci-lint # Linter
+      unstable.protobuf # protoc compiler
+      unstable.buf # popular linter and formatter
+      unstable.go-protobuf # protoc-gen-go
+    ];
 
   programs.git = {
     enable = true;
@@ -149,11 +115,17 @@
       i18n.logOutputEncoding = "utf-8";
       core.quotepath = false;
       push.autoSetupRemote = true;
+      pull.ff = "only";
 
       alias.lg =
         "log --graph --pretty=format:'%C(yellow)%h%Creset - %C(cyan)%an%Creset - %s %Cgreen(%cr)%Creset' --abbrev-commit --all";
       alias.count-lines = ''
         ! git log --author="$2" --until="$3" --pretty=tformat: --numstat $1 | awk '{ add += $1; subs += $2; loc += $1 - $2 } END { printf "added lines: %s, removed lines: %s, total lines: %s\n", add, subs, loc }' #'';
+
+      # Sign commits with SSH key
+      user.signingkey = "~/.ssh/id_rsa.pub";
+      gpg.format = "ssh";
+      commit.gpgsign = true;
     };
   };
 
@@ -172,29 +144,19 @@
     profiles = {
       default = {
         extensions = with pkgs.vscode-extensions; [
-          # Themes
           dracula-theme.theme-dracula
-
-          # Language extensions
           jnoortheen.nix-ide
           brettm12345.nixfmt-vscode
-          ms-python.python
-          ms-python.vscode-pylance
           golang.go
           zxh404.vscode-proto3
           hashicorp.terraform
           redhat.vscode-yaml
           redhat.vscode-xml
           ms-azuretools.vscode-docker
-
-          # Tools
-          #microsoft.intellicode
-          #marclipovsky.string-manipulation
-          #neptunedesign.vs-sequential-number
-          #snyk-security.snyk
-          #jebbs.plantuml
-          #waderyan.gitblame
-          #ow.vscode-subword-navigation
+          github.copilot
+          github.copilot-chat
+          ms-python.python
+          ms-python.vscode-pylance
         ];
         userSettings = {
           "workbench.colorTheme" = "Dracula Theme Soft";
@@ -209,28 +171,35 @@
           # Python config
           "[python]" = { "editor.defaultFormatter" = "ms-python.python"; };
           "python.languageServer" = "Pylance"; # or "Pylsp" if you prefer OSS
-          "python.formatting.provider" = "black";
-          "python.linting.enabled" = true;
-          "python.linting.pylintEnabled" = true;
-          "python.linting.flake8Enabled" = false;
 
           # Go config
-          "[go]" = { "editor.defaultFormatter" = "golang.go"; };
+          "[go]" = {
+            "editor.defaultFormatter" = "golang.go";
+            "editor.formatOnSave" = true;
+            "editor.formatOnSaveMode" = "file";
+          };
+          # "go.alternateTools" = {
+          #   "gopls" = "/home/halpdesk/.nix-profile/bin/gopls";
+          # };
           "gopls" = {
             "ui.completion.usePlaceholders" = true;
             "staticcheck" = true;
+            "analyses" = {
+              "unusedparams" = true;
+              "unusedwrite" = true;
+              "unusedvariable" = true;
+              "shadow" = true;
+            };
           };
-          "go.toolsManagement.autoUpdate" = true;
           "go.useLanguageServer" = true;
+          "go.toolsManagement.autoUpdate" = true;
+          "go.lintOnSave" = "file";
+          "go.lintTool" = "staticcheck";
 
           # proto
 
           # 1. Disable tab switching MCU behavior (aka preview tabs)
           "workbench.editor.enablePreview" = false;
-
-          # 2. Keybindings for move line up/down
-          "editor.action.moveLinesUpAction" = "ctrl+up";
-          "editor.action.moveLinesDownAction" = "ctrl+down";
 
           # 4. Search excludes and ignore behavior
           "search.useGlobalIgnoreFiles" = true;
@@ -258,6 +227,7 @@
           # 6. File associations
           "files.associations" = {
             "*.tfvars" = "terraform";
+            "*.tf" = "terraform";
             "Dockerfile*" = "dockerfile";
             "*.env*" = "dotenv";
             "Chart.yaml" = "helm";
@@ -268,8 +238,56 @@
           # 7. Update imports on file move
           "javascript.updateImportsOnFileMove.enabled" = "always";
           "typescript.updateImportsOnFileMove.enabled" = "always";
+
+          # 8. Terraform
+          "terraform.languageServer.enable" = true;
+          "terraform.languageServer.path" = "terraform-ls";
+          "terraform.validation.enableEnhancedValidation" = true;
+          "[terraform]" = {
+            "editor.defaultFormatter" = "hashicorp.terraform";
+            "editor.formatOnSave" = true;
+            "editor.formatOnSaveMode" = "file";
+          };
+          "[terraform-vars]" = {
+            "editor.defaultFormatter" = "hashicorp.terraform";
+            "editor.formatOnSave" = true;
+            "editor.formatOnSaveMode" = "file";
+          };
+          "github.copilot.enable" = {
+            "*" = true; # Enable for all files by default
+            "plaintext" = true; # Optional: disable for plaintext files
+            "yaml" = true;
+            "markdown" = true; # Optional: disable for docs
+            "scminput" = false; # Optional: disable in commit message input
+          };
         };
         keybindings = [
+          {
+            "key" = "alt+enter";
+            "command" = "github.copilot.showCopilotSuggestions";
+            "when" = "editorTextFocus && github.copilot.hasCompletions";
+          }
+          {
+            "key" = "ctrl+f8";
+            "command" = "editor.action.goToImplementation";
+            "when" = "editorHasImplementationProvider && editorTextFocus";
+          }
+          {
+            "key" = "f8";
+            "command" = "editor.action.revealDefinition";
+            "when" = "editorHasDefinitionProvider && editorTextFocus";
+          }
+          {
+            "key" = "shift+f12";
+            "command" = "editor.action.goToReferences";
+            "when" =
+              "editorHasReferenceProvider && editorTextFocus && !inReferenceSearchEditor && !isInEmbeddedEditor";
+          }
+          {
+            "key" = "shift+f8";
+            "command" = "editor.action.revealDefinition";
+            "when" = "editorHasDefinitionProvider && editorTextFocus";
+          }
           {
             "key" = "ctrl+shift+d";
             "command" = "editor.action.copyLinesDownAction";

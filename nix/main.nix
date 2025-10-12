@@ -16,10 +16,11 @@ let
 in {
 
   imports = [
-    (import ./modules/terminal.nix { inherit config pkgs username; })
-    (import ./modules/observability.nix { inherit config pkgs username; })
-    (import ./modules/tools.nix { inherit config pkgs username; })
-    (import ./modules/devtools.nix {
+    # (import ./lamp.nix { inherit pkgs; })
+    (import ./terminal.nix { inherit config pkgs username; })
+    (import ./observability.nix { inherit config pkgs username; })
+    (import ./tools.nix { inherit config pkgs lib username; })
+    (import ./devtools.nix {
       inherit config pkgs lib appsDir name companyEmail;
     })
   ];
@@ -38,7 +39,20 @@ in {
     GOPATH = "$HOME/go";
     GOPRIVATE = "gitlab.com/junitechnology/*";
     GO111MODULE = "on";
+    # GOPROXY = "off";
+    PKG_CONFIG_PATH =
+      "${pkgs.vips.dev}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig";
   };
+  home.sessionVariables.LD_LIBRARY_PATH = lib.makeLibraryPath [
+    pkgs.glib
+    pkgs.gobject-introspection
+    pkgs.cairo
+    pkgs.pango
+    pkgs.harfbuzz
+    pkgs.freetype
+    pkgs.gdk-pixbuf
+    pkgs.libffi
+  ];
 
   # home.packages = with pkgs; [ kdeFrameworks.kservice ];
 
@@ -47,39 +61,40 @@ in {
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
-      "x-scheme-handler/magnet" = "userapp-transmission-gtk-B138A3.desktop";
-      "x-scheme-handler/slack" = "slack.desktop";
-      "x-scheme-handler/http" = "google-chrome.desktop";
-      "x-scheme-handler/https" = "google-chrome.desktop";
-      "application/pdf" = "google-chrome.desktop";
-      "text/html" = "google-chrome.desktop";
-      "text/plain" = "code.desktop";
-      "application/json" = "code.desktop";
-      "application/x-yaml" = "code.desktop";
-      "application/x-python-code" = "code.desktop";
-      "text/x-python" = "code.desktop";
-      "text/x-go" = "code.desktop";
-      "text/x-java-source" = "code.desktop";
-      "text/javascript" = "code.desktop";
       "application/javascript" = "code.desktop";
-      "text/x-typescript" = "code.desktop";
-      "application/x-sh" = "code.desktop";
-      "text/markdown" = "code.desktop";
-      "text/x-c" = "code.desktop";
-      "text/x-c++src" = "code.desktop";
-      "text/x-cmake" = "code.desktop";
-      "text/x-makefile" = "code.desktop";
-      "text/x-shellscript" = "code.desktop";
+      "application/json" = "code.desktop";
+      "application/pdf" = "google-chrome.desktop";
       "application/x-php" = "code.desktop";
-      "text/x-rustsrc" = "code.desktop";
-      "text/x-scala" = "code.desktop";
-      "text/x-kotlin" = "code.desktop";
-      "text/x-lua" = "code.desktop";
-      "text/x-sql" = "code.desktop";
+      "application/x-python-code" = "code.desktop";
+      "application/x-sh" = "code.desktop";
+      "application/x-yaml" = "code.desktop";
+      "image/gif" = "org.nomacs.ImageLounge.desktop";
       "image/jpeg" = "org.nomacs.ImageLounge.desktop";
       "image/png" = "org.nomacs.ImageLounge.desktop";
-      "image/gif" = "org.nomacs.ImageLounge.desktop";
       "image/webp" = "org.nomacs.ImageLounge.desktop";
+      "text/html" = "google-chrome.desktop";
+      "text/javascript" = "code.desktop";
+      "text/markdown" = "code.desktop";
+      "text/plain" = "code.desktop";
+      "text/x-c" = "code.desktop";
+      "text/x-cmake" = "code.desktop";
+      "text/x-c++src" = "code.desktop";
+      "text/x-go" = "code.desktop";
+      "text/x-java-source" = "code.desktop";
+      "text/x-kotlin" = "code.desktop";
+      "text/x-lua" = "code.desktop";
+      "text/x-makefile" = "code.desktop";
+      "text/x-python" = "code.desktop";
+      "text/x-rustsrc" = "code.desktop";
+      "text/x-scala" = "code.desktop";
+      "text/x-shellscript" = "code.desktop";
+      "text/x-sql" = "code.desktop";
+      "text/x-typescript" = "code.desktop";
+      "x-scheme-handler/http" = "google-chrome.desktop";
+      "x-scheme-handler/https" = "google-chrome.desktop";
+      "x-scheme-handler/magnet" = "userapp-transmission-gtk-B138A3.desktop";
+      "x-scheme-handler/slack" = "slack.desktop";
+      "x-scheme-handler/cga" = "fyde-enroller.desktop";
     };
   };
 
@@ -167,20 +182,28 @@ in {
     fi
   '';
 
-  home.activation.linkDesktopEntries =
+  home.activation.linkApplicationsAndIcons =
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      # Ensure ~/.local/share/applications exists
-      mkdir -p "$HOME/.local/share/applications"
+      src="$HOME/.nix-profile/share"
+      dest="$HOME/.local/share"
 
-      # Define desktop entries you want to symlink
-      for app in 1password.desktop brave-browser.desktop google-chrome.desktop slack.desktop gimp.desktop code.desktop code-url-handler.desktop org.flameshot.Flameshot.desktop org.kde.konsole.desktop org.kde.yakuake.desktop vlc.desktop yazi.desktop org.nomacs.ImageLounge.desktop transmission-gtk.desktop; do
-        src="$HOME/.nix-profile/share/applications/$app"
-        dest="$HOME/.local/share/applications/$app"
+      mkdir -p "$dest"
 
-        if [ -f "$src" ] && [ ! -L "$dest" ]; then
-          ln -s "$src" "$dest"
-          echo "✅ Symlinked $app"
+      for dir in applications icons mime pixmaps; do
+        if [ -d "$src/$dir" ]; then
+          mkdir -p "$dest/$dir"
+          for f in "$src/$dir"/*; do
+            bn=$(basename "$f")
+            if [ -e "$dest/$dir/$bn" ]; then
+              continue
+            fi
+            ln -s "$f" "$dest/$dir/$bn"
+            echo "✅ Linked $dir/$bn"
+          done
         fi
       done
+
+      # Rebuild KDE system config cache
+      kbuildsycoca6 --noincremental || true
     '';
 }

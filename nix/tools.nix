@@ -1,33 +1,11 @@
-{ config, pkgs, username, ... }:
+{ config, pkgs, lib, username, ... }:
 
-let
-  # unstable = import <nixpkgs-unstable> { };
+{
+  imports = [
+    # (import ./modules/lamp.nix { inherit config pkgs lib; })
+    (import ./modules/barracuda-vpn.nix { inherit config pkgs lib; })
+  ];
 
-  # package url from: https://downloads.access.barracuda.com/apt/dists/stable/main/binary-amd64/Packages
-  barracuda-vpn = pkgs.stdenv.mkDerivation {
-    pname = "barracuda-vpn";
-    version = "0.32.2";
-    src = pkgs.fetchurl {
-      url =
-        "https://downloads.access.barracuda.com/apt/pool/stable/a/ac/access-tunnel_0.30.2_amd64.deb";
-      sha256 = "sha256-MiMECichCe5UMWBH9EJi2PhCnXPqaJNHjhqCrbAk1fc=";
-    };
-    nativeBuildInputs = [ pkgs.dpkg ];
-    unpackPhase = ''
-      dpkg-deb -x $src .
-    '';
-
-    installPhase = ''
-      mkdir -p $out/opt/access
-      mkdir -p $out/bin
-      cp -r opt/access/* $out/opt/access
-
-      ln -s $out/opt/access/access-tunnel $out/bin/access-tunnel
-      ln -s $out/opt/access/access-interface $out/bin/access-interface
-    '';
-  };
-
-in {
   home.packages = with pkgs; [
     # file finders and managers
     zoxide # Smarter cd command with jump capability <----------- USE
@@ -36,6 +14,9 @@ in {
     dog # Like cat, but with more options.
     bat # A cat clone with syntax highlighting and Git integration
     lsd # Another modern ls alternative with icons
+    pup # html parser
+    html-xml-utils
+    pandoc
 
     # compression
     gnutar
@@ -53,15 +34,19 @@ in {
     tealdeer # Fast tldr client (command help)
     xorg.xinput
 
+    # filesystem tools
+    f3
+
     # net utils
+    cacert
     inetutils # telnet and other
     openssh
     rsync
     curl
     xh # Friendly and modern replacement for curl
     wget
-    barracuda-vpn
     transmission_3-gtk
+    dig
     # transmission_4
 
     # media
@@ -69,6 +54,7 @@ in {
     vlc
     flameshot
     nomacs # image viewer
+    libreoffice-fresh
 
     # games
     rogue
@@ -81,6 +67,8 @@ in {
 
     # communiation
     slack
+    irssi
+    discord
 
     # utilities
     _1password-cli
