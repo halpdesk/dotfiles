@@ -60,10 +60,11 @@ in {
     Command=${config.programs.zsh.package}/bin/zsh
   '';
 
-  home.file.".config/konsolerc".text = ''
-    [Desktop Entry]
-    DefaultProfile=Shell.profile
-  '';
+  # xdg.configFile."konsolerc".source = ./konsolerc;
+  # home.file.".config/konsolerc".text = ''
+  #   [Desktop Entry]
+  #   DefaultProfile=Shell.profile
+  # '';
 
   home.file.".tmux/plugins/tpm".source = pkgs.fetchFromGitHub {
     owner = "tmux-plugins";

@@ -3,7 +3,7 @@
 {
   imports = [
     # (import ./modules/lamp.nix { inherit config pkgs lib; })
-    (import ./modules/barracuda-vpn.nix { inherit config pkgs lib; })
+    # (import ./modules/barracuda-vpn.nix { inherit config pkgs lib; })
   ];
 
   home.packages = with pkgs; [
@@ -45,8 +45,9 @@
     curl
     xh # Friendly and modern replacement for curl
     wget
-    transmission_3-gtk
     dig
+    # (import derivations/access-gui.nix { inherit pkgs; })
+    # transmission_3-gtk
     # transmission_4
 
     # media

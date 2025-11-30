@@ -1,6 +1,7 @@
 { config, pkgs, lib, appsDir, name, companyEmail, ... }:
 
 let unstable = import <nixpkgs-unstable> { };
+
 in {
   nixpkgs.config.allowUnfree = true;
 
@@ -34,6 +35,9 @@ in {
       zlib
       glib # glib-2.0
       glib.dev # glib headers
+      yay
+      paru
+      (import derivations/jtd-codegen.nix { inherit config pkgs lib; })
 
       # golang
       # go
@@ -52,11 +56,16 @@ in {
 
       # python
       (python3.withPackages (ps:
-        with ps; [
+        let
+          # libalpm = import ./derivations/libalpm.nix { inherit pkgs; };
+          # pyalpm = import ./derivations/pyalpm.nix { inherit pkgs libalpm; };
+          # namcap_pkg = import ./derivations/namcap.nix { inherit pkgs pyalpm; };
+        in with ps; [
           pip
           python-lsp-server # LSP server (pyls)
           black # Formatter
           pylint # Linter
+          # namcap_pkg # for debpak to install barracuda vpn
         ]))
       (import derivations/weasyprint.nix { inherit config pkgs lib; })
       # # Native libraries WeasyPrint needs
@@ -80,8 +89,8 @@ in {
       kubectl
       k9s
       helm
-      docker
-      docker-compose
+      # docker
+      # docker-compose
 
       # terraform
       terraform
@@ -106,10 +115,9 @@ in {
   programs.git = {
     enable = true;
 
-    userName = name;
-    userEmail = companyEmail;
-
-    extraConfig = {
+    settings = {
+      user.email = companyEmail;
+      user.name = name;
       init.defaultBranch = "main";
       i18n.commitEncoding = "utf-8";
       i18n.logOutputEncoding = "utf-8";
@@ -127,6 +135,7 @@ in {
       gpg.format = "ssh";
       commit.gpgsign = true;
     };
+
   };
 
   #home.activation.installNodeGlobalTools =
@@ -195,6 +204,8 @@ in {
           "go.toolsManagement.autoUpdate" = true;
           "go.lintOnSave" = "file";
           "go.lintTool" = "staticcheck";
+          "go.testTimeout" = "60s";
+          # "go.testFlags" = [ "-timeout 30m" ];
 
           # proto
 

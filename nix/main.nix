@@ -16,7 +16,8 @@ let
 in {
 
   imports = [
-    # (import ./lamp.nix { inherit pkgs; })
+    # (import ./modules/lamp.nix { inherit pkgs; })
+    (import ./modules/cgaaccess.nix { inherit config pkgs lib; })
     (import ./terminal.nix { inherit config pkgs username; })
     (import ./observability.nix { inherit config pkgs username; })
     (import ./tools.nix { inherit config pkgs lib username; })
@@ -29,10 +30,20 @@ in {
   home.homeDirectory = "/home/${username}";
   home.stateVersion = "25.05"; # Do not change manually?
 
+  nixpkgs.config = {
+    allowBroken = false;
+    allowUnfree = true;
+
+    # Make all derivations use system certs instead of Nix's own
+    sslCertFile = "/etc/ssl/certs/ca-certificates.crt";
+    sslCertDir = "/etc/ssl/certs";
+  };
+
   home.sessionVariables = {
-    EDITOR = defaultEditor;
+    EDITOR = "nano";
     TZ = timezone;
-    PATH = "$HOME/.nix-profile/bin:$HOME/.local/bin:$HOME/go/bin:$PATH";
+    PATH =
+      "$HOME/.nix-profile/bin:$HOME/.local/bin:$HOME/go/bin:$HOME/.npm-global/bin:$PATH";
     ZSH_THEME = "dracula";
     LC_ALL = "en_US.UTF-8";
     LANG = "en_US.UTF-8";
@@ -42,6 +53,10 @@ in {
     # GOPROXY = "off";
     PKG_CONFIG_PATH =
       "${pkgs.vips.dev}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig";
+    SSL_CERT_DIR = "/etc/ssl/certs";
+    SSL_CERT_FILE = "/etc/ssl/certs/ca-certificates.crt";
+    ELECTRON_EXTRA_CA_CERTS = "/etc/ssl/certs/ca-certificates.crt";
+    NODE_EXTRA_CA_CERTS = "/etc/ssl/certs/ca-certificates.crt";
   };
   home.sessionVariables.LD_LIBRARY_PATH = lib.makeLibraryPath [
     pkgs.glib
@@ -93,7 +108,7 @@ in {
       "x-scheme-handler/http" = "google-chrome.desktop";
       "x-scheme-handler/https" = "google-chrome.desktop";
       "x-scheme-handler/magnet" = "userapp-transmission-gtk-B138A3.desktop";
-      "x-scheme-handler/slack" = "slack.desktop";
+      "x-scheme-handler/slack" = "slack.desktop;Slack.desktop";
       "x-scheme-handler/cga" = "fyde-enroller.desktop";
     };
   };
