@@ -1,12 +1,12 @@
 { config, pkgs, users, lib, ... }:
 
 let
-  username = "halpdesk";
-  name = "Daniel Wiltshire Leppänen";
-  companyEmail = "daniel@juni.co";
-  email = "daniel.leppanen@gmail.com";
+  username = "";
+  name = "";
+  companyEmail = "";
+  email = "";
   home = "/home/${username}";
-  timezone = "Europe/Stockholm";
+  timezone = "";
   defaultEditor = "code";
   appsDir = "${home}/Apps";
   # backup sources from mounted drive
@@ -17,7 +17,7 @@ in {
 
   imports = [
     # (import ./modules/lamp.nix { inherit pkgs; })
-    (import ./modules/cgaaccess.nix { inherit config pkgs lib; })
+    ./modules/windows-vm/windows-vm.nix
     (import ./terminal.nix { inherit config pkgs username; })
     (import ./observability.nix { inherit config pkgs username; })
     (import ./tools.nix { inherit config pkgs lib username; })
@@ -48,16 +48,28 @@ in {
     LC_ALL = "en_US.UTF-8";
     LANG = "en_US.UTF-8";
     GOPATH = "$HOME/go";
-    GOPRIVATE = "gitlab.com/junitechnology/*";
+    GOPRIVATE = ""; # TODO: add company private
     GO111MODULE = "on";
     # GOPROXY = "off";
-    PKG_CONFIG_PATH =
-      "${pkgs.vips.dev}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig";
+    PKG_CONFIG_PATH = lib.concatStringsSep ":" [
+      "$HOME/.nix-profile/lib/pkgconfig"
+      "${pkgs.vips.dev}/lib/pkgconfig"
+      "${pkgs.glib.dev}/lib/pkgconfig"
+      "${pkgs.libxml2.dev}/lib/pkgconfig"
+      "${pkgs.cairo.dev}/lib/pkgconfig"
+      "${pkgs.pango.dev}/lib/pkgconfig"
+      "${pkgs.harfbuzz.dev}/lib/pkgconfig"
+      "${pkgs.fontconfig.dev}/lib/pkgconfig"
+      "${pkgs.freetype.dev}/lib/pkgconfig"
+    ];
     SSL_CERT_DIR = "/etc/ssl/certs";
     SSL_CERT_FILE = "/etc/ssl/certs/ca-certificates.crt";
     ELECTRON_EXTRA_CA_CERTS = "/etc/ssl/certs/ca-certificates.crt";
     NODE_EXTRA_CA_CERTS = "/etc/ssl/certs/ca-certificates.crt";
   };
+  # Deliberately does NOT carry pkgs.stdenv.cc.cc.lib: Arch's libstdc++ exports
+  # GLIBCXX_3.4.34 while Nix's gcc-14 stops at 3.4.33, so putting the Nix copy
+  # here shadows a newer host library for every process in the session.
   home.sessionVariables.LD_LIBRARY_PATH = lib.makeLibraryPath [
     pkgs.glib
     pkgs.gobject-introspection
@@ -75,6 +87,15 @@ in {
   xdg.enable = true;
   xdg.mimeApps = {
     enable = true;
+
+    # [Added Associations] — extra handlers picked up over time
+    # (preserved from the pre-home-manager mimeapps.list.backup so that
+    # subsequent KDE writes don't drift away from this file).
+    associations.added = {
+      "x-scheme-handler/slack" = [ "slack.desktop" "Slack.desktop" ];
+      "x-scheme-handler/siyuan" = "SiYuan.desktop";
+    };
+
     defaultApplications = {
       "application/javascript" = "code.desktop";
       "application/json" = "code.desktop";
@@ -92,8 +113,8 @@ in {
       "text/markdown" = "code.desktop";
       "text/plain" = "code.desktop";
       "text/x-c" = "code.desktop";
-      "text/x-cmake" = "code.desktop";
       "text/x-c++src" = "code.desktop";
+      "text/x-cmake" = "code.desktop";
       "text/x-go" = "code.desktop";
       "text/x-java-source" = "code.desktop";
       "text/x-kotlin" = "code.desktop";
@@ -108,8 +129,8 @@ in {
       "x-scheme-handler/http" = "google-chrome.desktop";
       "x-scheme-handler/https" = "google-chrome.desktop";
       "x-scheme-handler/magnet" = "userapp-transmission-gtk-B138A3.desktop";
-      "x-scheme-handler/slack" = "slack.desktop;Slack.desktop";
-      "x-scheme-handler/cga" = "fyde-enroller.desktop";
+      "x-scheme-handler/siyuan" = "SiYuan.desktop";
+      "x-scheme-handler/slack" = "slack.desktop";
     };
   };
 

@@ -1,5 +1,19 @@
 # README
 
+## Installation
+
+1. Nix package manager
+https://nixos.org/download/
+
+2. Home manager
+https://nix-community.github.io/home-manager/#sec-install-standalone
+
+3. nixpkgs-unstable
+nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+nix-channel --update
+
+
+
 ## Useful commands
 cat ~/.config/home-manager/default.nix
 cat ~/.config/home-manager/home.nix
@@ -33,4 +47,5 @@ sudo systemctl daemon-reload
 
 sudo mv /etc/bash.bashrc.backup-before-nix /etc/bash.bashrc
 
-sudo rm -rf "/etc/nix" "/nix" "/root/.nix-profile" "/root/.nix-defexpr" "/root/.nix-channels" "/root/.local/state/nix" "/root/.cache/nix" "/home/halpdesk/.nix-profile" "/home/halpdesk/.nix-defexpr" "/home/halpdesk/.nix-channels" "/home/halpdesk/.local/state/nix" "/home/halpdesk/.cache/nix"
+> Replace username with your username
+sudo rm -rf "/etc/nix" "/nix" "/root/.nix-profile" "/root/.nix-defexpr" "/root/.nix-channels" "/root/.local/state/nix" "/root/.cache/nix" "/home/username/.nix-profile" "/home/username/.nix-defexpr" "/home/username/.nix-channels" "/home/username/.local/state/nix" "/home/username/.cache/nix"

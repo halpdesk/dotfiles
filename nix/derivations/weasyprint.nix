@@ -36,7 +36,7 @@ let
       fonttools
     ];
 
-    nativeBuildInputs = [ pkgs.wrapGAppsHook ];
+    nativeBuildInputs = [ pkgs.wrapGAppsHook3 ];
     buildInputs = with pkgs; [
       cairo
       pango
@@ -51,7 +51,7 @@ in pkgs.stdenv.mkDerivation {
   pname = "weasyprint-env";
   version = weasyprint.version;
 
-  nativeBuildInputs = [ pkgs.makeWrapper pkgs.wrapGAppsHook ];
+  nativeBuildInputs = [ pkgs.makeWrapper pkgs.wrapGAppsHook3 ];
   buildInputs = with pkgs; [
     cairo
     pango

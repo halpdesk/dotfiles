@@ -1,0 +1,9 @@
+.guides/
+.cursor/
+result
+_old/
+derivations/kolide-launcher.nix
+modules/device-trust.nix
+modules/cgaaccess.nix
+modules/cgaaccess_old.nix
+derivations/barracuda-vpn.nix

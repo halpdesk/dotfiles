@@ -1,16 +1,32 @@
 { config, pkgs, lib, appsDir, name, companyEmail, ... }:
 
-let unstable = import <nixpkgs-unstable> { };
+let
+  unstable = import <nixpkgs-unstable> { config.allowUnfree = true; };
+  claudeCode = unstable.claude-code-bin.overrideAttrs (_: rec {
+    version = "2.1.268";
+    src = unstable.fetchurl {
+      url =
+        "https://downloads.claude.ai/claude-code-releases/${version}/linux-x64/claude";
+      hash = "sha256-lpGit715ZxLKjP+44y5U/3/EW2YlQCMxcaFqlKBCVlM=";
+    };
+  });
 
 in {
   nixpkgs.config.allowUnfree = true;
+
+  # Nix owns which editors get the Claude Code extension. Without this, running
+  # `claude` in an integrated terminal installs it into whichever editor hosts
+  # that terminal, which would defeat the Cursor exclusion in modules/cursor.
+  home.sessionVariables.CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL = "1";
 
   home.packages = with pkgs;
     [
       # IDEs
       vscode
-      (import derivations/cursor.nix { inherit config pkgs lib; })
+      claudeCode
+      (import derivations/claude-desktop.nix { inherit pkgs lib; })
       (import derivations/cursor-cli.nix { inherit config pkgs lib; })
+      (import derivations/antigravity-cli.nix { inherit config pkgs lib; })
 
       # cli tools
       gitui # TUI for git workflows
@@ -41,6 +57,7 @@ in {
 
       # golang
       # go
+      delve # Go debugger (used by vscode-go test/debug)
       # gopls
       # go-tools
       # gofumpt # Better gofmt
@@ -52,7 +69,7 @@ in {
       # node and js
       nodejs
       nodePackages.typescript
-      nodePackages.ts-node
+      #nodePackages.ts-node
 
       # python
       (python3.withPackages (ps:
@@ -65,7 +82,7 @@ in {
           python-lsp-server # LSP server (pyls)
           black # Formatter
           pylint # Linter
-          # namcap_pkg # for debpak to install barracuda vpn
+          # namcap_pkg # for debpak to install company vpn
         ]))
       (import derivations/weasyprint.nix { inherit config pkgs lib; })
       # # Native libraries WeasyPrint needs
@@ -83,12 +100,17 @@ in {
       nix-direnv
       gmp
 
+      # Database tools
+      postgresql # psql client
+
       # Cloud and container tools
       awscli2
+      ssm-session-manager-plugin # aws ssm start-session / port-forward
       google-cloud-sdk
       kubectl
       k9s
       helm
+      (import derivations/auth0-cli.nix { inherit config pkgs lib; })
       # docker
       # docker-compose
 
@@ -100,6 +122,32 @@ in {
       # other
       vips.dev # high performance image processing library
       pkg-config
+      libxml2.dev
+      libxml2
+
+      # math-videos / manim (pango+cairo for manimpango; latex+dvisvgm for TeX)
+      ffmpeg
+      cairo
+      cairo.dev
+      pango
+      pango.dev
+      harfbuzz
+      harfbuzz.dev
+      fontconfig
+      fontconfig.dev
+      freetype
+      freetype.dev
+      # Manim wraps every Tex/MathTex snippet in \documentclass[preview]{standalone},
+      # which scheme-medium does not ship; standalone/preview live in
+      # collection-latexextra. The font packages cover TexTemplateLibrary's
+      # 3b1b preamble (dsfont, tipa, calligra, wasysym, ...).
+      (texlive.combine {
+        inherit (texlive)
+          scheme-medium collection-latexextra collection-fontsrecommended
+          dvisvgm standalone preview doublestroke tipa relsize calligra
+          wasysym ragged2e physics microtype setspace cm-super jknapltx
+          amsfonts xcolor;
+      })
     ] ++ [
       # golang
       unstable.go
@@ -123,10 +171,23 @@ in {
       i18n.logOutputEncoding = "utf-8";
       core.quotepath = false;
       push.autoSetupRemote = true;
-      pull.ff = "only";
+      pull = {
+        ff = "only";
+        rebase = false;
+      };
+      push = { default = "simple"; };
+      # Extra guardrails
+      advice = { diverging = true; };
+      # Branch-specific safety for main
+      branches = {
+        main = {
+          rebase = false;
+          mergeOptions = [ "--ff-only" ];
+        };
+      };
 
       alias.lg =
-        "log --graph --pretty=format:'%C(yellow)%h%Creset - %C(cyan)%an%Creset - %s %Cgreen(%cr)%Creset' --abbrev-commit --all";
+        "log --graph --pretty=format:'%C(yellow)%h%Creset - %C(cyan)%an%Creset - %s %Cgreen(%cr)%Creset' --abbrev-commit";
       alias.count-lines = ''
         ! git log --author="$2" --until="$3" --pretty=tformat: --numstat $1 | awk '{ add += $1; subs += $2; loc += $1 - $2 } END { printf "added lines: %s, removed lines: %s, total lines: %s\n", add, subs, loc }' #'';
 
@@ -135,7 +196,6 @@ in {
       gpg.format = "ssh";
       commit.gpgsign = true;
     };
-
   };
 
   #home.activation.installNodeGlobalTools =
@@ -152,12 +212,12 @@ in {
     enable = true;
     profiles = {
       default = {
-        extensions = with pkgs.vscode-extensions; [
+        # drblury.protobuf-vsc
+        extensions = (with pkgs.vscode-extensions; [
           dracula-theme.theme-dracula
           jnoortheen.nix-ide
           brettm12345.nixfmt-vscode
           golang.go
-          zxh404.vscode-proto3
           hashicorp.terraform
           redhat.vscode-yaml
           redhat.vscode-xml
@@ -166,6 +226,27 @@ in {
           github.copilot-chat
           ms-python.python
           ms-python.vscode-pylance
+          shd101wyy.markdown-preview-enhanced
+        ]) ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+          {
+            name = "aicursor";
+            publisher = "ktiays";
+            version = "0.1.0"; # Replace with the current version
+            sha256 =
+              "sha256-ZFaXPGn+JeYvD54Yxn7b21Ev+n6NBwkfkekfRa8akPY="; # Run the build, get the real hash from the error, and replace this
+          }
+          {
+            name = "claude-code";
+            publisher = "anthropic";
+            version = "2.1.268";
+            sha256 = "sha256-f34zyvfUc5EyDaq6Nz+qVMk8DdiHZHVrGzVH1y8LfnM=";
+          }
+          {
+            name = "makefile-tools";
+            publisher = "ms-vscode";
+            version = "0.13.37";
+            sha256 = "sha256-WoWsBYoRAkI/SVe9nEkqhayDzYRdKjUAHhJrTmgMIEU=";
+          }
         ];
         userSettings = {
           "workbench.colorTheme" = "Dracula Theme Soft";
@@ -187,9 +268,7 @@ in {
             "editor.formatOnSave" = true;
             "editor.formatOnSaveMode" = "file";
           };
-          # "go.alternateTools" = {
-          #   "gopls" = "/home/halpdesk/.nix-profile/bin/gopls";
-          # };
+          "go.alternateTools" = { "dlv" = lib.getExe pkgs.delve; };
           "gopls" = {
             "ui.completion.usePlaceholders" = true;
             "staticcheck" = true;
@@ -271,6 +350,12 @@ in {
             "markdown" = true; # Optional: disable for docs
             "scminput" = false; # Optional: disable in commit message input
           };
+
+          # Markdown Preview Enhanced
+          "markdown-preview-enhanced.breakOnSingleNewLine" = false;
+
+          # Claude code
+          "claudeCode.preferredLocation" = "panel";
         };
         keybindings = [
           {

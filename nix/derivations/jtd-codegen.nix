@@ -2,7 +2,6 @@
 
 # unstable = import <nixpkgs-unstable> { };
 
-# package url from: https://downloads.access.barracuda.com/apt/dists/stable/main/binary-amd64/Packages
 pkgs.stdenv.mkDerivation {
   pname = "jtd-codegen";
   version = "0.4.1";

@@ -3,7 +3,8 @@
 {
   imports = [
     # (import ./modules/lamp.nix { inherit config pkgs lib; })
-    # (import ./modules/barracuda-vpn.nix { inherit config pkgs lib; })
+    # (import ./modules/sdrpp/sdrpp.nix { inherit config pkgs lib; })
+    # (import ./modules/sdrangel/sdrangel.nix { inherit config pkgs lib; })
   ];
 
   home.packages = with pkgs; [
@@ -46,6 +47,8 @@
     xh # Friendly and modern replacement for curl
     wget
     dig
+    ngrok
+    # ufw # uncomplicated firewall installed via os
     # (import derivations/access-gui.nix { inherit pkgs; })
     # transmission_3-gtk
     # transmission_4
@@ -65,11 +68,21 @@
     # web browsers and extensions
     google-chrome
     brave
+    tor-browser
 
     # communiation
     slack
     irssi
     discord
+
+    # printer - installed by OS
+    # cups
+    # cups-filters
+    # ghostscript
+    # system-config-printer
+    # carps-cups # canon drivers
+    # gutenprint # optional drivers
+    # gutenprintBin # canon drivers
 
     # utilities
     _1password-cli

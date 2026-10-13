@@ -101,11 +101,26 @@ in {
     enable = true;
     syntaxHighlighting.enable = true;
     history.size = 10000;
+    dotDir =
+      "${config.xdg.configHome}/zsh"; # latest change ----------------------------------------------------------
 
     shellAliases = {
-      update = "home-manager switch";
+      # Use a timestamped backup suffix so a stale .backup file can never
+      # collide with a new switch (the old fixed -b backup would error with
+      # "Existing file '<path>.backup' would be clobbered" once it existed).
+      #
+      # `sudo -v` first refreshes (or prompts once for) the sudo timestamp so
+      # the activation block in modules/*.nix can run its `sudo
+      # groupadd / usermod / setcap / ln -s /etc/ssl/cert.pem` calls
+      # unattended. Without this, the activation script would prompt for
+      # sudo password mid-flight, which is fragile under non-tty rebuilds.
+      update = ''sudo -v && home-manager switch -b "backup-$(date +%Y%m%d-%H%M%S)"'';
       update-session =
         "unset __HM_SESS_VARS_SOURCED && source ~/.nix-profile/etc/profile.d/hm-session-vars.sh";
+
+      # RAM
+      ram-report = "${config.home.homeDirectory}/docs/scripts/ram-report.sh";
+      ram-cleanup = "${config.home.homeDirectory}/docs/scripts/ram-cleanup.sh";
 
       # terminal
       ll = "eza -lah --color=auto";
